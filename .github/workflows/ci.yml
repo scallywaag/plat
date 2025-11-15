@@ -107,10 +107,12 @@ jobs:
         with:
           version: v3.12.0
 
-      - name: Set up Kind
-        uses: engineerd/setup-kind@v0.11.0
-        with:
-          version: v0.24.0
+      - name: Install Kind
+        run: |
+          curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.24.0/kind-linux-amd64
+          chmod +x ./kind
+          sudo mv ./kind /usr/local/bin/kind
+          kind version
 
       - name: Create kind cluster
         run: |
