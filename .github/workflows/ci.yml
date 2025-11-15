@@ -95,3 +95,42 @@ jobs:
         run: |
           docker push ghcr.io/${{ github.repository }}/plat:${{ github.sha }}
           docker push ghcr.io/${{ github.repository }}/plat:latest
+
+  deploy:
+    needs: push
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v3
+        with:
+          version: v3.12.0
+
+      - name: Set up Kind
+        uses: engineerd/setup-kind@v0.11.0
+        with:
+          version: v0.20.0
+
+      - name: Create kind cluster
+        run: |
+          kind create cluster --name plat-dev || echo "Cluster already exists"
+
+      - name: Load image into kind
+        run: kind load docker-image ghcr.io/${{ github.repository }}/plat:latest --name plat-dev
+
+      - name: Deploy with Helm
+        run: |
+          helm upgrade --install plat ./helm \
+            --set image.repository=ghcr.io/${{ github.repository }}/plat \
+            --set image.tag=latest
+
+      - name: Wait for deployment to be ready
+        run: kubectl rollout status deployment/plat --timeout=30s
+
+      - name: Check pods
+        run: kubectl get pods
+
+      - name: Check service
+        run: kubectl get svc plat
+
