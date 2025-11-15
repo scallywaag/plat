@@ -15,11 +15,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-go@v5
         with:
           go-version: '1.22'
-
       - name: Run golangci-lint
         uses: golangci/golangci-lint-action@v6
         with:
@@ -31,54 +29,21 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-go@v5
         with:
           go-version: '1.22'
-
       - run: go test ./... -v
 
-  build:
+  build-and-push:
     needs: test
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Build image to tar
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          platforms: linux/amd64
-          push: false
-          tags: ghcr.io/${{ github.repository }}/plat:temp
-          outputs: type=docker,dest=image.tar
-
-      - name: Upload built image
-        uses: actions/upload-artifact@v4
-        with:
-          name: plat-image
-          path: image.tar
-          if-no-files-found: error
-
-  push:
-    needs: build
-    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
       packages: write
     steps:
       - uses: actions/checkout@v4
 
-      - name: Download built image
-        uses: actions/download-artifact@v4
-        with:
-          name: plat-image
-
-      - name: Load image
-        run: docker load -i image.tar
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
       - uses: docker/login-action@v3
         with:
@@ -86,18 +51,18 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Tag image
-        run: |
-          docker tag ghcr.io/${{ github.repository }}/plat:temp ghcr.io/${{ github.repository }}/plat:${{ github.sha }}
-          docker tag ghcr.io/${{ github.repository }}/plat:temp ghcr.io/${{ github.repository }}/plat:latest
-
-      - name: Push image
-        run: |
-          docker push ghcr.io/${{ github.repository }}/plat:${{ github.sha }}
-          docker push ghcr.io/${{ github.repository }}/plat:latest
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          platforms: linux/amd64
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}/plat:latest
+            ghcr.io/${{ github.repository }}/plat:${{ github.sha }}
 
   deploy:
-    needs: push
+    needs: build-and-push
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -118,8 +83,9 @@ jobs:
         run: |
           kind create cluster --name plat-dev || echo "Cluster already exists"
 
-      - name: Load image into kind
-        run: kind load docker-image ghcr.io/${{ github.repository }}/plat:latest --name plat-dev
+      - name: Log in to GHCR
+        run: |
+          echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
       - name: Deploy with Helm
         run: |
@@ -135,4 +101,3 @@ jobs:
 
       - name: Check service
         run: kubectl get svc plat
-
