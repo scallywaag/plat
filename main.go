@@ -14,6 +14,16 @@ func main() {
 	mux.HandleFunc("PUT /tasks/{id}", UpdateTask)
 	mux.HandleFunc("DELETE /tasks/{id}", DeleteTask)
 
+	mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("ok"))
+	})
+
+	mux.HandleFunc("/readyz", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("ok"))
+	})
+
 	log.Println("Server starting on :8080...")
 	log.Fatal(http.ListenAndServe(":8080", mux))
 }
