@@ -16,8 +16,7 @@ func executeRequest(req *http.Request) *httptest.ResponseRecorder {
 	mux.HandleFunc("PUT /tasks/{id}", UpdateTask)
 	mux.HandleFunc("DELETE /tasks/{id}", DeleteTask)
 
-	var rr *httptest.ResponseRecorder
-	rr = httptest.NewRecorder()
+	rr := httptest.NewRecorder()
 	mux.ServeHTTP(rr, req)
 	return rr
 }

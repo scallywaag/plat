@@ -122,7 +122,10 @@ func DeleteTask(w http.ResponseWriter, r *http.Request) {
 func jsonResponse(w http.ResponseWriter, status int, data any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
-	json.NewEncoder(w).Encode(data)
+
+	if err := json.NewEncoder(w).Encode(data); err != nil {
+		http.Error(w, "failed to encode response", http.StatusInternalServerError)
+	}
 }
 
 func jsonError(w http.ResponseWriter, status int, message string) {
