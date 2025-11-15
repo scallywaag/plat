@@ -108,7 +108,7 @@ jobs:
           version: v3.12.0
 
       - name: Set up Kind
-        uses: engineerd/setup-kind@v0.6.0
+        uses: engineerd/setup-kind@v0.11.0
         with:
           version: v0.24.0
 
