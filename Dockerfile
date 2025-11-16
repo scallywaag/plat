@@ -1,18 +1,22 @@
-FROM golang:1.22-alpine AS builder
+FROM golang:1.23-alpine AS builder
 WORKDIR /app
+
+COPY go.mod go.sum ./
+
+RUN go mod download
 
 COPY . .
 
 RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o plat .
 
 
-FROM alpine:3.19
+FROM gcr.io/distroless/static:nonroot
 
 COPY --from=builder /app/plat /plat
+
+USER nonroot
+
 EXPOSE 8080
 
-RUN adduser -D app
-USER app
-
-CMD ["/plat"]
+ENTRYPOINT ["/plat"]
 

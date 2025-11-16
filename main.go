@@ -3,6 +3,8 @@ package main
 import (
 	"log"
 	"net/http"
+
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 func main() {
@@ -27,6 +29,8 @@ func main() {
 			log.Println("failed to write response:", err)
 		}
 	})
+
+	mux.Handle("/metrics", promhttp.Handler())
 
 	log.Println("Server starting on :8080...")
 	log.Fatal(http.ListenAndServe(":8080", mux))
